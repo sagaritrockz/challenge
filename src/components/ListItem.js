@@ -6,8 +6,8 @@ const ListItem = ({ text, completed, onClick, isEditable, id, listId }) => {
   if (isEditable) {
     return (
       <Wrapper isEditable={isEditable}>
-        <code>
-          [{completed ? 'x' : '  '}] <Text onClick={onClick} completed={completed}>{text}</Text>
+        <code onClick={onClick}>
+          [{completed ? 'x' : '  '}] <Text completed={completed}>{text}</Text>
         </code>
       </Wrapper>
     )
