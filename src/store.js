@@ -1,39 +1,51 @@
 import { Container } from 'unstated'
 
 const defaultState = {
-  list: [
+  selectedList: 1,
+  selectedFilter: 'ALL',
+  filters: [
+    {label: 'All', value: 'ALL'},
+    {label: 'Completed', value: 'COMPLETED'},
+    {label: 'Active', value: 'ACTIVE'}
+  ],
+  lists: [
     {
+      text: 'Default list',
       id: 1,
-      completed: false,
-      text: 'Read README'
-    },
-    {
-      id: 2,
-      completed: false,
-      text: 'Add one todo'
-    },
-    {
-      id: 3,
-      completed: false,
-      text: 'Add filters'
-    },
-    {
-      id: 4,
-      completed: false,
-      text: 'Add multiple lists'
-    },
-    {
-      id: 5,
-      completed: false,
-      text: 'Optional: add tests'
+      todos: [
+        {
+          id: 1,
+          completed: false,
+          text: 'Read README'
+        },
+        {
+          id: 2,
+          completed: false,
+          text: 'Add one todo'
+        },
+        {
+          id: 3,
+          completed: false,
+            text: 'Add filters'
+          },
+          {
+            id: 4,
+            completed: false,
+            text: 'Add multiple lists'
+          },
+          {
+            id: 5,
+            completed: false,
+            text: 'Optional: add tests'
+          }
+        ]
     }
   ]
 }
 
-class TodosContainer extends Container {
+export class TodosContainer extends Container {
   constructor (props) {
     super(props)
-
     this.state = this.readStorage()
   }
 
@@ -44,55 +56,111 @@ class TodosContainer extends Container {
         return JSON.parse(state)
       }
     }
-
     return defaultState
   }
 
   syncStorage () {
     if (window && window.localStorage) {
-      const state = JSON.stringify(this.state)
+      let newState = {...this.state, selectedList: 1, selectedFilter: 'ALL'};
+      const state = JSON.stringify(newState)
       window.localStorage.setItem('appState', state)
     }
   }
 
-  getList () {
-    return this.state.list
+  getToDoList (listId, filter) {
+    const list = this.state.lists.find(list => list.id === listId);
+    const res = list.todos.filter(todo => {
+      if (filter === 'ACTIVE') {
+        return !todo.completed ? true : false;
+      }
+      else if (filter === 'COMPLETED') {
+        return todo.completed ? true : false;
+      } else {
+        return true;
+      }
+    })
+    return res;
   }
 
-  toggleComplete = async id => {
-    const item = this.state.list.find(i => i.id === id)
-    const completed = !item.completed
+  getList = () => {
+    return this.state.lists;
+  }
 
-    // We're using await on setState here because this comes from unstated package, not React
-    // See: https://github.com/jamiebuilds/unstated#introducing-unstated
+  toggleComplete = async (todoId, listId) => {
+    let newList = this.state.lists.find(list => list.id === listId);
     await this.setState(state => {
-      const list = state.list.map(item => {
-        if (item.id !== id) return item
+      const newTodos = newList.todos.map(todo => {
+        if (todo.id !== todoId) return todo
         return {
-          ...item,
-          completed
+          ...todo,
+          completed: !todo.completed
         }
       })
-      return { list }
+      newList.todos = newTodos
+      const lists = state.lists.map(list => {
+        return list.id === listId ? newList : list
+      });
+      return { lists }
     })
-
     this.syncStorage()
   }
 
-  createTodo = async text => {
+  createTodo = async (text, listId) => {
+    let newList = this.state.lists.find(list => list.id === listId);
     await this.setState(state => {
       const item = {
         completed: false,
         text,
-        id: state.list.length + 1
+        id: newList.todos.length + 1
       }
-
-      const list = state.list.concat(item)
-      return { list }
+      newList.todos.push(item);
+      const lists = state.lists.map(list => {
+        return list.id === listId ? newList : list
+      });
+      return { lists }
     })
-
     this.syncStorage()
   }
-}
 
-export default TodosContainer
+  createList = async text => {
+    await this.setState(state => {
+      const item = {
+        text,
+        todos: [],
+        id: state.lists.length + 1
+      }
+
+      const lists = state.lists.concat(item)
+      return { lists }
+    })
+
+   this.syncStorage()
+  }
+
+  onListSelect = async listId => {
+    await this.setState(state => {
+      const selectedList = listId;
+      return { selectedList }
+    })
+  }
+
+  getSelectedList = () => {
+    return this.state.selectedList;
+  }
+
+  getFilters = () => {
+    return this.state.filters;
+  }
+
+  getSelectedFilter = () => {
+    return this.state.selectedFilter;
+  }
+
+  onFilterChange = async (filter, listId) => {
+    await this.setState(state => {
+      const selectedFilter = filter;
+      return { selectedFilter }
+    })
+  }
+
+}
